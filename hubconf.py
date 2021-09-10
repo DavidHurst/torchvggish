@@ -1,4 +1,4 @@
-dependencies = ['torch', 'numpy', 'soundfile']
+dependencies = ['torch', 'numpy']
 
 from torchvggish.vggish import VGGish
 
