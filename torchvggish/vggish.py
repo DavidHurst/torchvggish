@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import nn.functional as F
 from torch import hub
 
 from . import vggish_input, vggish_params
@@ -11,24 +12,20 @@ class VGG(nn.Module):
         super(VGG, self).__init__()
         self.features = features
         self.embeddings = nn.Sequential(
-		nn.AdaptiveMaxPool2d(4, 6),
-		nn.Flatten(),
-            	nn.Linear(512, 4096),
-            	nn.ReLU(True),
+        	nn.Linear(512 * 4 * 6, 4096),
+        	nn.ReLU(True),
             	nn.Linear(4096, 4096),
             	nn.ReLU(True),
             	nn.Linear(4096, 128),
             	nn.ReLU(True)
 	)
-
+	
     def forward(self, x):
         x = self.features(x)
-	
+	x = F.adaptive_max_pool2d(x, output_size=(4, 6))
         # Transpose the output from features to
         # remain compatible with vggish embeddings
-        x = torch.transpose(x, 1, 3)
-        x = torch.transpose(x, 1, 2).contiguous()
-	
+        x = x.movedim(1, -1).contiguous().flatten(start_dim=1)
         return self.embeddings(x)
 
 
