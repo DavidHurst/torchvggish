@@ -21,12 +21,12 @@ class VGG(nn.Module):
 	)
 	
     def forward(self, x):
-        x = self.features(x)
+	x = self.features(x)
 	x = F.adaptive_max_pool2d(x, output_size=(4, 6))
-        # Transpose the output from features to
-        # remain compatible with vggish embeddings
-        x = x.movedim(1, -1).contiguous().flatten(start_dim=1)
-        return self.embeddings(x)
+	# Transpose the output from features to
+	# remain compatible with vggish embeddings
+	x = x.movedim(1, -1).contiguous().flatten(start_dim=1)
+	return self.embeddings(x)
 
 
 class Postprocessor(nn.Module):
