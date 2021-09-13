@@ -11,14 +11,14 @@ class VGG(nn.Module):
         super(VGG, self).__init__()
         self.features = features
         self.embeddings = nn.Sequential(
-			nn.AdaptiveMaxPool2d(4, 6),
-			nn.Flatten(),
-            nn.Linear(512, 4096),
-            nn.ReLU(True),
-            nn.Linear(4096, 4096),
-            nn.ReLU(True),
-            nn.Linear(4096, 128),
-            nn.ReLU(True)
+		nn.AdaptiveMaxPool2d(4, 6),
+		nn.Flatten(),
+            	nn.Linear(512, 4096),
+            	nn.ReLU(True),
+            	nn.Linear(4096, 4096),
+            	nn.ReLU(True),
+            	nn.Linear(4096, 128),
+            	nn.ReLU(True)
 	)
 
     def forward(self, x):
@@ -26,7 +26,8 @@ class VGG(nn.Module):
 	
         # Transpose the output from features to
         # remain compatible with vggish embeddings
-        x = x.permute(0, 2, 3, 1).contiguous()
+        x = torch.transpose(x, 1, 3)
+        x = torch.transpose(x, 1, 2).contiguous()
 	
         return self.embeddings(x)
 
