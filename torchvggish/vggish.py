@@ -11,17 +11,24 @@ class VGG(nn.Module):
         super(VGG, self).__init__()
         self.features = features
         self.embeddings = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
+			nn.AdaptiveMaxPool2d(4, 6),
 			nn.Flatten(),
             nn.Linear(512, 4096),
             nn.ReLU(True),
             nn.Linear(4096, 4096),
             nn.ReLU(True),
             nn.Linear(4096, 128),
-            nn.ReLU(True))
+            nn.ReLU(True)
+	)
 
     def forward(self, x):
-        return self.embedding(self.features(x))
+        x = self.features(x)
+	
+        # Transpose the output from features to
+        # remain compatible with vggish embeddings
+        x = x.permute(0, 2, 3, 1).contiguous()
+	
+        return self.embeddings(x)
 
 
 class Postprocessor(nn.Module):
