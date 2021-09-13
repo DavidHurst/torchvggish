@@ -11,7 +11,7 @@ class VGG(nn.Module):
         super(VGG, self).__init__()
         self.features = features
         self.embeddings = nn.Sequential(
-            nn.Linear(512 * 4 * 6, 4096),
+            nn.Linear(512, 4096),
             nn.ReLU(True),
             nn.Linear(4096, 4096),
             nn.ReLU(True),
@@ -20,6 +20,9 @@ class VGG(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
+        
+        # Global adaptive pooling.
+        gap = nn.AdaptiveMaxPool2d(1)
 
         # Transpose the output from features to
         # remain compatible with vggish embeddings
@@ -27,6 +30,7 @@ class VGG(nn.Module):
         x = torch.transpose(x, 1, 2)
         x = x.contiguous()
         x = x.view(x.size(0), -1)
+        x = gap(x)
 
         return self.embeddings(x)
 
