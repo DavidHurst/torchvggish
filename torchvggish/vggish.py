@@ -1,7 +1,7 @@
+import nn.functional as F
 import numpy as np
 import torch
 import torch.nn as nn
-import nn.functional as F
 from torch import hub
 
 from . import vggish_input, vggish_params
@@ -12,21 +12,21 @@ class VGG(nn.Module):
         super(VGG, self).__init__()
         self.features = features
         self.embeddings = nn.Sequential(
-        	nn.Linear(512 * 4 * 6, 4096),
-        	nn.ReLU(True),
-            	nn.Linear(4096, 4096),
-            	nn.ReLU(True),
-            	nn.Linear(4096, 128),
-            	nn.ReLU(True)
-	)
-	
+            nn.Linear(512 * 4 * 6, 4096),
+            nn.ReLU(True),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Linear(4096, 128),
+            nn.ReLU(True),
+        )
+
     def forward(self, x):
-	x = self.features(x)
-	x = F.adaptive_max_pool2d(x, output_size=(4, 6))
-	# Transpose the output from features to
-	# remain compatible with vggish embeddings
-	x = x.movedim(1, -1).contiguous().flatten(start_dim=1)
-	return self.embeddings(x)
+        x = self.features(x)
+        x = F.adaptive_max_pool2d(x, output_size=(4, 6))
+        # Transpose the output from features to
+        # remain compatible with vggish embeddings
+        x = x.movedim(1, -1).contiguous().flatten(start_dim=1)
+        return self.embeddings(x)
 
 
 class Postprocessor(nn.Module):
@@ -47,14 +47,19 @@ class Postprocessor(nn.Module):
         super(Postprocessor, self).__init__()
         # Create empty matrix, for user's state_dict to load
         self.pca_eigen_vectors = torch.empty(
-            (vggish_params.EMBEDDING_SIZE, vggish_params.EMBEDDING_SIZE,),
+            (
+                vggish_params.EMBEDDING_SIZE,
+                vggish_params.EMBEDDING_SIZE,
+            ),
             dtype=torch.float,
         )
         self.pca_means = torch.empty(
             (vggish_params.EMBEDDING_SIZE, 1), dtype=torch.float
         )
 
-        self.pca_eigen_vectors = nn.Parameter(self.pca_eigen_vectors, requires_grad=False)
+        self.pca_eigen_vectors = nn.Parameter(
+            self.pca_eigen_vectors, requires_grad=False
+        )
         self.pca_means = nn.Parameter(self.pca_means, requires_grad=False)
 
     def postprocess(self, embeddings_batch):
@@ -82,7 +87,9 @@ class Postprocessor(nn.Module):
         # - Premultiply by PCA matrix of shape [output_dims, input_dims]
         #   where both are are equal to embedding_size in our case.
         # - Transpose result back to [batch_size, embedding_size].
-        pca_applied = torch.mm(self.pca_eigen_vectors, (embeddings_batch.t() - self.pca_means)).t()
+        pca_applied = torch.mm(
+            self.pca_eigen_vectors, (embeddings_batch.t() - self.pca_means)
+        ).t()
 
         # Quantize by:
         # - clipping to [min, max] range
@@ -139,27 +146,38 @@ def _vgg():
 
 
 class VGGish(VGG):
-    def __init__(self, urls, device=None, pretrained=True, preprocess=True, postprocess=True, progress=True):
+    def __init__(
+        self,
+        urls,
+        device=None,
+        pretrained=True,
+        preprocess=True,
+        postprocess=True,
+        progress=True,
+    ):
         super().__init__(make_layers())
         if pretrained:
-            state_dict = hub.load_state_dict_from_url(urls['vggish'], progress=progress)
+            state_dict = hub.load_state_dict_from_url(urls["vggish"], progress=progress)
             super().load_state_dict(state_dict)
 
         if device is None:
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device = device
         self.preprocess = preprocess
         self.postprocess = postprocess
         if self.postprocess:
             self.pproc = Postprocessor()
             if pretrained:
-                state_dict = hub.load_state_dict_from_url(urls['pca'], progress=progress)
+                state_dict = hub.load_state_dict_from_url(
+                    urls["pca"], progress=progress
+                )
                 # TODO: Convert the state_dict to torch
                 state_dict[vggish_params.PCA_EIGEN_VECTORS_NAME] = torch.as_tensor(
                     state_dict[vggish_params.PCA_EIGEN_VECTORS_NAME], dtype=torch.float
                 )
                 state_dict[vggish_params.PCA_MEANS_NAME] = torch.as_tensor(
-                    state_dict[vggish_params.PCA_MEANS_NAME].reshape(-1, 1), dtype=torch.float
+                    state_dict[vggish_params.PCA_MEANS_NAME].reshape(-1, 1),
+                    dtype=torch.float,
                 )
 
                 self.pproc.load_state_dict(state_dict)
