@@ -22,10 +22,14 @@ class VGG(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
-        x = F.adaptive_max_pool2d(x, output_size=(4, 6))
+
         # Transpose the output from features to
         # remain compatible with vggish embeddings
-        x = x.movedim(1, -1).contiguous().flatten(start_dim=1)
+        x = torch.transpose(x, 1, 3)
+        x = torch.transpose(x, 1, 2)
+        x = x.contiguous()
+        x = x.view(x.size(0), -1)
+
         return self.embeddings(x)
 
 
